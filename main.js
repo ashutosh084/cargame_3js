@@ -81,6 +81,7 @@ let effectiveMaxSteeringAngle = maxSteeringAngle;
 
 // 7. Road Generation
 const roadChunks = new Map();
+const terrainChunks = new Map(); // New map for terrain chunks
 const chunkSize = 50;
 const roadWidth = 10;
 const renderDistance = 10; // chunks ahead and behind
@@ -106,6 +107,11 @@ const barrierTexture = textureLoader.load('assets/barrier.jpg');
 barrierTexture.wrapS = THREE.RepeatWrapping;
 barrierTexture.wrapT = THREE.RepeatWrapping;
 barrierTexture.repeat.set(10, 1); // Repeat texture for barrier length
+
+const grassTexture = textureLoader.load('assets/grass.jpg'); // Assuming grass.jpg exists
+grassTexture.wrapS = THREE.RepeatWrapping;
+grassTexture.wrapT = THREE.RepeatWrapping;
+grassTexture.repeat.set(50, 50); // Adjust repeat as needed
 
 function createRoadChunk(zIndex) {
     const chunk = new THREE.Group();
@@ -145,7 +151,41 @@ function createRoadChunk(zIndex) {
     roadChunks.set(zIndex, chunk);
 }
 
-function updateRoadChunks() {
+function createTerrainChunk(zIndex) { // New function for terrain chunks
+    const terrainGroup = new THREE.Group();
+    const chunkZ = zIndex * chunkSize;
+    terrainGroup.position.z = chunkZ;
+
+    const terrainSize = roadWidth * 10; // Make terrain wider than the road
+    const terrainSegments = 10; // Fewer segments for performance, can be adjusted
+    const terrainMaxHeight = 5; // Max height of hills, adjusted for scale
+
+    const terrainGeometry = new THREE.PlaneGeometry(terrainSize, chunkSize, terrainSegments, terrainSegments);
+    terrainGeometry.rotateX(-Math.PI / 2); // Rotate to be horizontal
+
+    const positionAttribute = terrainGeometry.attributes.position;
+
+    for (let i = 0; i < positionAttribute.count; i++) {
+        const x = positionAttribute.getX(i);
+        const z = positionAttribute.getZ(i);
+
+        // Simple noise function using sine waves and randomness
+        const y = (Math.sin((x + chunkZ) * 0.1) * 0.5 + Math.cos((z + chunkZ) * 0.05) * 0.5 + Math.random() * 0.2) * terrainMaxHeight;
+        positionAttribute.setY(i, y - terrainMaxHeight / 2); // Offset to keep terrain centered around 0
+    }
+
+    terrainGeometry.computeVertexNormals(); // Recalculate normals for lighting
+
+    const terrainMaterial = new THREE.MeshLambertMaterial({ map: grassTexture });
+    const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
+    terrain.position.y = -5; // Position below the road
+    terrainGroup.add(terrain);
+
+    scene.add(terrainGroup);
+    terrainChunks.set(zIndex, terrainGroup);
+}
+
+function updateChunks() { // Renamed and updated to handle both road and terrain
     const newChunkZ = Math.round(car.position.z / chunkSize);
     if (newChunkZ !== currentChunkZ) {
         currentChunkZ = newChunkZ;
@@ -155,9 +195,13 @@ function updateRoadChunks() {
             chunksToKeep.add(i);
         }
 
+        // Update Road Chunks
         for (const zIndex of chunksToKeep) {
             if (!roadChunks.has(zIndex)) {
                 createRoadChunk(zIndex);
+            }
+            if (!terrainChunks.has(zIndex)) { // Also create terrain chunk
+                createTerrainChunk(zIndex);
             }
         }
 
@@ -165,6 +209,14 @@ function updateRoadChunks() {
             if (!chunksToKeep.has(zIndex)) {
                 scene.remove(chunk);
                 roadChunks.delete(zIndex);
+            }
+        }
+
+        // Update Terrain Chunks
+        for (const [zIndex, chunk] of terrainChunks.entries()) {
+            if (!chunksToKeep.has(zIndex)) {
+                scene.remove(chunk);
+                terrainChunks.delete(zIndex);
             }
         }
     }
@@ -205,10 +257,10 @@ function spawnBillboardForChunk(chunk) {
 
     const billboardGroup = new THREE.Group();
 
-    const pillarGeometry = new THREE.BoxGeometry(0.5, 10, 0.5);
+    const pillarGeometry = new THREE.BoxGeometry(0.5, 15, 0.5); // Extended height
     const pillarMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
     const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
-    pillar.position.y = 5;
+    pillar.position.y = 2.5; // Adjusted position to sink into terrain
     billboardGroup.add(pillar);
 
     const displayAreaGeometry = new THREE.BoxGeometry(8, 4, 0.2);
@@ -322,14 +374,16 @@ function checkCollisions() {
 function animate() {
     requestAnimationFrame(animate);
     updateCar();
-    updateRoadChunks();
+    updateChunks(); // Call the updated function
     renderer.render(scene, camera);
 }
 
 function init() {
     initUI();
+    // Removed createTerrain() as it's now handled by createTerrainChunk
     for (let i = -renderDistance; i <= renderDistance; i++) {
         createRoadChunk(i);
+        createTerrainChunk(i); // Create initial terrain chunks
     }
     animate();
 }

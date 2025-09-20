@@ -19,9 +19,9 @@ function createTextTexture(title, content) {
     context.fillRect(0, 0, canvas.width, canvas.height);
 
     context.fillStyle = 'black';
-    context.font = 'bold 48px Arial';
+    context.font = 'bold 40px Arial';
     context.textAlign = 'center';
-    context.fillText(title, canvas.width / 2, 80);
+    context.fillText(title, canvas.width / 2, 50);
 
     let fontSize = 50;
     if (content.length > 15) {
@@ -31,12 +31,18 @@ function createTextTexture(title, content) {
         fontSize = 34;
     }
     context.font = `${fontSize}px Arial`;
-    context.fillText(content, canvas.width / 2, 160);
+    const lines = content.split('\n');
+    let startY = 160 - (lines.length - 1) * (fontSize / 2 + 5); // Adjust startY to center multiple lines
+    for (let i = 0; i < lines.length; i++) {
+        context.fillText(lines[i], canvas.width / 2, startY + i * (fontSize + 10));
+    }
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
     return texture;
 }
+
+let index = -10;
 
 export function spawnBillboardForChunk(chunk, camera) {
     if (billboardData.length === 0) return;
@@ -59,14 +65,28 @@ export function spawnBillboardForChunk(chunk, camera) {
     displayArea.receiveShadow = true;
     billboardGroup.add(displayArea);
 
-    const data = billboardData[Math.floor(Math.random() * billboardData.length)];
+    const data = billboardData[index < 0 ? 0 : index];
+    index++;
+    if (index >= billboardData.length) {
+        index = 0;
+    }
     const textTexture = createTextTexture(data.title, data.content);
-    const textMaterial = new THREE.MeshBasicMaterial({ map: textTexture, side: THREE.DoubleSide });
+    const textMaterial = new THREE.MeshBasicMaterial({ map: textTexture, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
     const textGeometry = new THREE.PlaneGeometry(20, 8);
     const textPlane = new THREE.Mesh(textGeometry, textMaterial);
     textPlane.position.y = 12;
     textPlane.position.z = 0.11;
     billboardGroup.add(textPlane);
+
+    const oopsTexture = createTextTexture("OOPS", "NOTHING HERE,\n TURN AROUND GO AHEAD");
+    const oopsMaterial = new THREE.MeshBasicMaterial({ map: oopsTexture, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+    const oopsGeometry = new THREE.PlaneGeometry(20, 8);
+    const oopsPlane = new THREE.Mesh(oopsGeometry, oopsMaterial);
+    oopsPlane.position.y = 12;
+    oopsPlane.position.z = -0.11;
+    oopsPlane.rotation.y = Math.PI;
+    billboardGroup.add(oopsPlane);
+
     billboardGroup.textPlane = textPlane;
 
     const side = Math.random() > 0.5 ? 1 : -1;

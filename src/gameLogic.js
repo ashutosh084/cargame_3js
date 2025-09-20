@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { car, wheelbase, leftBrakeLight, rightBrakeLight, leftBrakeLightMaterial, rightBrakeLightMaterial, leftReverseLight, rightReverseLight, leftReverseLightMaterial, rightReverseLightMaterial } from './car.js';
 import { keys } from './controls.js';
-import { camera } from './scene.js';
+import { camera, carAmbientSound } from './scene.js';
 import { checkCollisions } from './collisions.js';
 import { debugBox, speedBars, speedText, steeringWheel, numberOfBars } from './ui.js';
 
-export const maxSpeed = 0.45;
+export const maxSpeed = 0.90;
 export const maxAcceleration = 0.001;
 export const brakeAcceleration = maxAcceleration * 2;
 export const friction = 0.999;
@@ -14,6 +14,8 @@ export const maxFullTurnSpeed = 0.2;
 export let currentSpeed = 0;
 export let acceleration = 0;
 export let inducedFriction = 0;
+
+let firstPress = false;
 
 export let steeringAngle = 0;
 export const maxSteeringAngle = 30 * Math.PI / 180;
@@ -29,7 +31,10 @@ export function updateCar() {
 
     const speedRatio = Math.abs(currentSpeed) / maxSpeed;
 
-    if (keys.w) {
+    if (keys.w || (!firstPress && currentSpeed < 0.25)) {
+        if (keys.w) {
+            firstPress = true;
+        }
         if (currentSpeed < 0) {
             acceleration = brakeAcceleration;
         } else {
@@ -37,6 +42,7 @@ export function updateCar() {
         }
         currentSpeed += acceleration;
     } else if (keys.s) {
+        firstPress = true;
         if (currentSpeed > 0) {
             acceleration = -brakeAcceleration;
         } else {
@@ -55,8 +61,10 @@ export function updateCar() {
     effectiveMaxSteeringAngle = maxSteeringAngle - (maxSteeringAngle - minSteeringAngle) * speedT;
 
     if (keys.a) {
+        firstPress = true;
         steeringAngle += steeringSpeed;
     } else if (keys.d) {
+        firstPress = true;
         steeringAngle -= steeringSpeed;
     } else {
         if (currentSpeed !== 0) {
@@ -92,6 +100,14 @@ export function updateCar() {
     if (Math.abs(currentSpeed) > 0.01) {
         car.rotation.y += (currentSpeed / wheelbase) * Math.tan(steeringAngle);
     }
+    if (Math.abs(currentSpeed) > 0.2) {
+        carAmbientSound.volume = 0.5;
+    } else if (Math.abs(currentSpeed) < 0.2 && Math.abs(currentSpeed) > 0.05) {
+        carAmbientSound.volume = 0.2;
+    } else if (Math.abs(currentSpeed) < 0.05) {
+        carAmbientSound.volume = 0.1;
+    }
+
 
     if (checkCollisions()) {
         car.position.copy(previousPosition);
@@ -118,6 +134,10 @@ export function updateCar() {
     const brightWhite = 0xffffff; // Bright white color
 
     if (currentSpeed < 0) {
+        leftBrakeLight.intensity = 0;
+        rightBrakeLight.intensity = 0;
+        leftBrakeLightMaterial.color.set(dullRed);
+        rightBrakeLightMaterial.color.set(dullRed);
         leftReverseLight.intensity = 1;
         rightReverseLight.intensity = 1;
         leftReverseLightMaterial.color.set(brightWhite);
@@ -129,12 +149,12 @@ export function updateCar() {
         rightReverseLightMaterial.color.set(dullWhite);
     }
 
-    const cameraOffset = new THREE.Vector3(0, 5, -15); // Camera 10 units up, 20 units behind
+    const cameraOffset = new THREE.Vector3(0, 4, -15);
     cameraOffset.applyEuler(car.rotation);
     camera.position.copy(car.position).add(cameraOffset);
 
     // Calculate the lookAt target
-    const lookAtTargetOffset = new THREE.Vector3(0, 0, 5); // Point 10 units in front of the car
+    const lookAtTargetOffset = new THREE.Vector3(0, 0, 5);
     lookAtTargetOffset.applyEuler(car.rotation);
     const lookAtPoint = car.position.clone().add(lookAtTargetOffset);
 

@@ -3,6 +3,15 @@ import * as THREE from 'three';
 export const car = new THREE.Group();
 export const wheelbase = 2.4;
 
+// Define compatible car color sets
+const carColorSets = [
+    { body: 0xFF0000, cabin: 0xCCCCCC }, // Red body, Light Grey cabin
+    { body: 0x0000FF, cabin: 0xFFFFFF }, // Blue body, White cabin
+    { body: 0x00FF00, cabin: 0xF5F5DC }, // Green body, Beige cabin
+    { body: 0xFFFF00, cabin: 0x000000 }, // Yellow body, Black cabin
+    { body: 0xFFFFFF, cabin: 0x666666 }  // White body, Dark Grey cabin
+];
+
 // Geometric Brake Light Materials
 const dullRed = 0x880000; // Dull red color
 const brightRed = 0xff0000; // Bright red color
@@ -30,9 +39,12 @@ export const leftReverseLight = new THREE.PointLight(reverseLightColor, reverseL
 export const rightReverseLight = new THREE.PointLight(reverseLightColor, reverseLightIntensity, reverseLightDistance);
 
 export function createCar() {
+    // Randomly select a color set
+    const selectedColors = carColorSets[Math.floor(Math.random() * carColorSets.length)];
+
     const carBody = new THREE.Mesh(
         new THREE.BoxGeometry(2, 1, 4),
-        new THREE.MeshLambertMaterial({ color: 0xff0000 })
+        new THREE.MeshLambertMaterial({ color: selectedColors.body })
     );
     carBody.position.y = 0.5;
     carBody.castShadow = true;    // Enable casting shadows
@@ -41,7 +53,7 @@ export function createCar() {
 
     const carCabin = new THREE.Mesh(
         new THREE.BoxGeometry(1.8, 0.8, 2),
-        new THREE.MeshLambertMaterial({ color: 0xffffff })
+        new THREE.MeshLambertMaterial({ color: selectedColors.cabin })
     );
     carCabin.position.y = 1.4;
     carCabin.position.z = -0.5;
@@ -116,3 +128,4 @@ export function createCar() {
     // car.rotation.y = Math.PI;
     return car;
 }
+

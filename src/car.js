@@ -112,6 +112,7 @@ export function createCar() {
     rightReverseLight.position.set(0.7, 0.7, -3); // Position relative to car
     car.add(rightReverseLight);
 
+    car.position.x = +2.5; // Position car on the left lane
     // car.rotation.y = Math.PI;
     return car;
 }

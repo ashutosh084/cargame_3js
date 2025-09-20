@@ -14,7 +14,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Optional: for softer shadow
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
 scene.add(ambientLight);
-export const dirLight = new THREE.DirectionalLight(0xFFA07A, 1);
+export const dirLight = new THREE.DirectionalLight(0xffffff, 1);
 dirLight.position.set(-50, 50, -50); // Adjusted Y position for better shadows
 dirLight.castShadow = true; // Enable shadow casting for the directional light
 

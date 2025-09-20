@@ -101,6 +101,7 @@ export function createTerrainChunk(zIndex) {
     const terrainGroup = new THREE.Group();
     const chunkZ = zIndex * chunkSize;
     terrainGroup.position.z = chunkZ;
+    terrainGroup.rotation.x = -10 * (Math.PI / 180); // Rotate by 10 degrees around X-axis
 
     const terrainSize = roadWidth * 50;
     const terrainSegments = 10;
@@ -141,7 +142,7 @@ export function createTerrainChunk(zIndex) {
         const terrainY = ((Math.sin((randomX + chunkZ) * 0.1) * 0.5 + Math.cos((randomZ + chunkZ) * 0.05) * 0.5) * terrainMaxHeight - terrainMaxHeight / 2) - 5;
 
         const bush = createBush();
-        bush.position.set(randomX, terrainY + bushHeight + terrain.position.y, randomZ); // Position on terrain surface
+        bush.position.set(randomX, terrainY + bushHeight + terrain.position.y + 2, randomZ); // Position on terrain surface with offset
         terrainGroup.add(bush);
     }
 
